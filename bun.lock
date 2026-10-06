@@ -8,6 +8,7 @@
         "@supabase/supabase-js": "^2.117.2",
         "cors": "^2.8.5",
         "dotenv": "^16.4.5",
+        "esbuild": "^0.28.2",
         "express": "^4.19.2",
         "jsonwebtoken": "^9.0.2",
         "tsx": "^4.23.15",
