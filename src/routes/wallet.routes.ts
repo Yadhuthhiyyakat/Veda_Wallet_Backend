@@ -1,5 +1,7 @@
 import { Router } from "express";
 import {
+  sendWalletOtp,
+  verifyWalletOtp,
   registerOrLoginWallet,
   bindDevice,
   linkGovLocker,
@@ -8,6 +10,10 @@ import {
 import { requireWalletAuth } from "../middleware/auth.middleware";
 
 const router = Router();
+
+// Public: Email OTP authentication
+router.post("/send-otp", sendWalletOtp);
+router.post("/verify-otp", verifyWalletOtp);
 
 // Public: Wallet login/registration
 router.post("/auth", registerOrLoginWallet);
