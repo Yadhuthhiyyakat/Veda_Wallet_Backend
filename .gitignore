@@ -19,8 +19,7 @@ node_modules/
 *.sqlite3
 wallet.db
 
-# Build outputs & Transpiled Code
-dist/
+# Build outputs (allow dist/ for direct cloud deployment)
 build/
 *.tsbuildinfo
 
