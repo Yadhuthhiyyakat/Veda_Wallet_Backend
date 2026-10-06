@@ -1,20 +1,21 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { isSupabaseConfigured, supabaseWallet } from "../config/database";
 import { dbService } from "../services/db.service";
 import { AuthenticatedWalletRequest } from "../middleware/auth.middleware";
 
 const JWT_SECRET = process.env.JWT_SECRET || "veda_wallet_secret_key_private_co_2026";
 const LOCKER_API_BASE = process.env.LOCKER_API_BASE || "https://vedha-backend-9wy7.onrender.com/api";
 
-// In-memory OTP store (TTL: 5 minutes)
+// Local fallback store
 interface OtpRecord {
   otp: string;
   expiresAt: number;
 }
 const otpStore = new Map<string, OtpRecord>();
 
-// ─── 1. Send OTP to User's Email ─────────────────────────────────────────────
+// ─── 1. Send Real OTP to User's Email ─────────────────────────────────────────
 export const sendWalletOtp = async (req: Request, res: Response): Promise<void> => {
   const { email } = req.body;
   if (!email || typeof email !== "string" || !email.includes("@")) {
@@ -23,21 +24,48 @@ export const sendWalletOtp = async (req: Request, res: Response): Promise<void> 
   }
 
   const cleanEmail = email.trim().toLowerCase();
-  const otp = crypto.randomInt(100000, 999999).toString();
-  const expiresAt = Date.now() + 5 * 60 * 1000;
 
-  otpStore.set(cleanEmail, { otp, expiresAt });
-  console.log(`[Server B OTP] 🔑 OTP generated for ${cleanEmail}: ${otp}`);
+  try {
+    if (isSupabaseConfigured && supabaseWallet) {
+      // Send real email OTP via Supabase Auth Mailer
+      const { error } = await supabaseWallet.auth.signInWithOtp({
+        email: cleanEmail,
+        options: {
+          shouldCreateUser: true,
+        },
+      });
 
-  res.json({
-    message: "6-digit verification code sent successfully",
-    email: cleanEmail,
-    expiresIn: 300,
-    demo_otp: otp,
-  });
+      if (error) {
+        console.error("[Server B OTP] Supabase email dispatch error:", error.message);
+        res.status(400).json({ error: error.message });
+        return;
+      }
+
+      console.log(`[Server B OTP] ✉️ Real email OTP dispatched to: ${cleanEmail}`);
+      res.json({
+        message: `6-digit verification code sent to ${cleanEmail}`,
+        email: cleanEmail,
+        expiresIn: 300,
+      });
+      return;
+    }
+
+    // Local offline dev fallback
+    const otp = crypto.randomInt(100000, 999999).toString();
+    otpStore.set(cleanEmail, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+    console.log(`[Server B OTP Local] 🔑 OTP for ${cleanEmail}: ${otp}`);
+
+    res.json({
+      message: `6-digit verification code sent to ${cleanEmail}`,
+      email: cleanEmail,
+      expiresIn: 300,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to dispatch verification email: " + err.message });
+  }
 };
 
-// ─── 2. Verify OTP and Authenticate Wallet ────────────────────────────────────
+// ─── 2. Verify Real OTP from Email ────────────────────────────────────────────
 export const verifyWalletOtp = async (req: Request, res: Response): Promise<void> => {
   const { email, otp, full_name } = req.body;
   if (!email || !otp) {
@@ -48,27 +76,45 @@ export const verifyWalletOtp = async (req: Request, res: Response): Promise<void
   const cleanEmail = email.toString().trim().toLowerCase();
   const cleanOtp = otp.toString().trim();
 
-  const record = otpStore.get(cleanEmail);
-  const isValid =
-    (record && record.otp === cleanOtp && record.expiresAt > Date.now()) ||
-    cleanOtp === "123456";
-
-  if (!isValid) {
-    res.status(400).json({ error: "Invalid or expired OTP code" });
-    return;
-  }
-
-  otpStore.delete(cleanEmail);
-  const handle = `${cleanEmail.split("@")[0]}@veda`;
-
   try {
+    let authUserId = "";
+
+    if (isSupabaseConfigured && supabaseWallet) {
+      // Verify real OTP via Supabase Auth
+      const { data, error } = await supabaseWallet.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanOtp,
+        type: "email",
+      });
+
+      if (error || !data.user) {
+        console.error("[Server B OTP] Verification failed:", error?.message);
+        res.status(400).json({ error: error?.message || "Invalid or expired OTP code" });
+        return;
+      }
+
+      authUserId = data.user.id;
+    } else {
+      // Local fallback
+      const record = otpStore.get(cleanEmail);
+      const isValid =
+        (record && record.otp === cleanOtp && record.expiresAt > Date.now()) ||
+        cleanOtp === "123456";
+      if (!isValid) {
+        res.status(400).json({ error: "Invalid or expired OTP code" });
+        return;
+      }
+      otpStore.delete(cleanEmail);
+    }
+
+    const handle = `${cleanEmail.split("@")[0]}@veda`;
     let existing = await dbService.findUserByIdentifier(handle, cleanEmail);
     let userId: string;
 
     if (existing) {
       userId = existing.id;
     } else {
-      userId = `wusr_${crypto.randomBytes(8).toString("hex")}`;
+      userId = authUserId || `wusr_${crypto.randomBytes(8).toString("hex")}`;
       await dbService.createUser({
         id: userId,
         veda_handle: handle,
@@ -95,7 +141,7 @@ export const verifyWalletOtp = async (req: Request, res: Response): Promise<void
       },
     });
   } catch (err: any) {
-    res.status(500).json({ error: "Database error: " + err.message });
+    res.status(500).json({ error: "Verification error: " + err.message });
   }
 };
 
