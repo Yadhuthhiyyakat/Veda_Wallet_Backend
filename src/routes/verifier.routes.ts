@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { verifyQRCode } from "../controllers/verifier.controller.js";
+import { verifyQRCode } from "../controllers/verifier.controller";
 
 const router = Router();
 

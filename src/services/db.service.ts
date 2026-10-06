@@ -1,4 +1,4 @@
-import { isSupabaseConfigured, supabaseWallet, sqliteDb } from "../config/database.js";
+import { isSupabaseConfigured, supabaseWallet, sqliteDb } from "../config/database";
 
 export interface WalletUserRecord {
   id: string;

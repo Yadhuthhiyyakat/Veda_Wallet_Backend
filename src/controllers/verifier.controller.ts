@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
-import { dbService } from "../services/db.service.js";
+import { dbService } from "../services/db.service";
 
 const LOCKER_API_BASE = process.env.LOCKER_API_BASE || "https://vedha-backend-9wy7.onrender.com/api";
 

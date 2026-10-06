@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
-import { dbService } from "../services/db.service.js";
-import { AuthenticatedWalletRequest } from "../middleware/auth.middleware.js";
+import { dbService } from "../services/db.service";
+import { AuthenticatedWalletRequest } from "../middleware/auth.middleware";
 
 // ─── 1. Verifier Creates a UPI Collect Verification Request ──────────────────
 export const requestVerification = async (req: Request, res: Response): Promise<void> => {

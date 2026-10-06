@@ -4,8 +4,8 @@ import {
   bindDevice,
   linkGovLocker,
   getWalletCards,
-} from "../controllers/wallet.controller.js";
-import { requireWalletAuth } from "../middleware/auth.middleware.js";
+} from "../controllers/wallet.controller";
+import { requireWalletAuth } from "../middleware/auth.middleware";
 
 const router = Router();
 

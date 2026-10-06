@@ -4,8 +4,8 @@ import {
   getPendingRequests,
   respondConsent,
   getRequestStatus,
-} from "../controllers/consent.controller.js";
-import { requireWalletAuth } from "../middleware/auth.middleware.js";
+} from "../controllers/consent.controller";
+import { requireWalletAuth } from "../middleware/auth.middleware";
 
 const router = Router();
 

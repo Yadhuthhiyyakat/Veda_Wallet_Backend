@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { dbService } from "../services/db.service.js";
-import { AuthenticatedWalletRequest } from "../middleware/auth.middleware.js";
+import { dbService } from "../services/db.service";
+import { AuthenticatedWalletRequest } from "../middleware/auth.middleware";
 
 const JWT_SECRET = process.env.JWT_SECRET || "veda_wallet_secret_key_private_co_2026";
 const LOCKER_API_BASE = process.env.LOCKER_API_BASE || "https://vedha-backend-9wy7.onrender.com/api";

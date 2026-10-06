@@ -1,9 +1,9 @@
 import express from "express";
 import cors from "cors";
 
-import walletRoutes from "./routes/wallet.routes.js";
-import consentRoutes from "./routes/consent.routes.js";
-import verifierRoutes from "./routes/verifier.routes.js";
+import walletRoutes from "./routes/wallet.routes";
+import consentRoutes from "./routes/consent.routes";
+import verifierRoutes from "./routes/verifier.routes";
 
 const app = express();
 
